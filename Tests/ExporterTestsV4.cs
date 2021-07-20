@@ -19,6 +19,8 @@ namespace Tests
             if (Make_cname("COB ID used by RPDO") != "COB_IDUsedByRPDO")
                 throw (new Exception("Make_cname Conversion error"));
 
+            if (Make_cname("A/D unit offset value (filtered)") != "A_DUnitOffsetValueFiltered")
+                throw (new Exception("make_cname Conversion error"));
         }
     }
 }
