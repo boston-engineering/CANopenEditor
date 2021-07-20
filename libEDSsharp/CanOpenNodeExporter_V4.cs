@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Linq;
 
 namespace libEDSsharp
 {
@@ -671,38 +672,59 @@ OD_t *{0} = &_{0};", odname, string.Join(",\n    ", ODList)));
 
             // split string to tokens, separated by non-word characters
             string[] tokens = Regex.Split(name.Replace('-', '_'), @"[\W]+");
+            tokens = tokens.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToArray();
 
             string output = "";
-            char prev = ' ';
-            foreach (string tok in tokens)
+            for (int i = 1; i < tokens.Length; i ++)
             {
-                if (tok.Length == 0)
-                    continue;
+                char firstCharT1 = tokens[i - 1][0];
+                char firstCharT2 = tokens[i][0];
 
-                char first = tok[0];
-
-                if (Char.IsDigit(first) || Char.IsDigit(prev) || (Char.IsUpper(prev) && Char.IsUpper(first)))
+                if (output.Length <= 0 && Char.IsDigit(firstCharT1))
                 {
-                    // add underscore, if tok starts with digit or we have two upper-case words
-                    output += "_" + tok;
+                    // add underscore, if tok starts with digit
+                    output += "_" + tokens[i - 1];
                 }
-                else if (output.Length > 0)
+                else if (Char.IsUpper(firstCharT1) && Char.IsUpper(firstCharT2))
                 {
-                    // all tokens except the first start with uppercse letter
-                    output += Char.ToUpper(first) + tok.Substring(1);
+                    // if we have two upper-case words in a row
+                    output += tokens[i - 1] + "_" + tokens[i];
+                    i++;
                 }
-                else if (Char.IsLower(tok[1]))
+                else if (output.Length <= 0 && tokens[i - 1].Length > 1 && Char.IsUpper(firstCharT1))
                 {
-                    // first token start with lower-case letter, except whole word is uppercase
-                    output += Char.ToLower(first) + tok.Substring(1);
+                    if (Char.IsLower(tokens[i - 1][1]))
+                    {
+                        // if first token starts with a upper-case and rest of the word is lower-case, make first char lower-case
+                        output += Char.ToLower(firstCharT1) + tokens[i - 1].Substring(1);
+                    }
+                }
+                else if (output.Length > 0 && Char.IsLetter(firstCharT1))
+                {
+                    if (Char.IsLower(firstCharT1))
+                    {
+                        // all tokens except the first start with uppercase letter
+                        output += Char.ToUpper(firstCharT1) + tokens[i - 1].Substring(1);
+                    }
                 }
                 else
                 {
                     // use token as is
-                    output += tok;
+                    output += tokens[i - 1];
                 }
-
-                prev = tok[tok.Length - 1];
+                
+                // Handle the last token
+                if (i == tokens.Length - 1)
+                {
+                    if (tokens[i].Length > 1 && Char.IsLower(firstCharT2))
+                    {
+                        output += Char.ToUpper(firstCharT2) + tokens[i].Substring(1);
+                    }
+                    else
+                    {
+                        output += tokens[i];
+                    }
+                }
             }
 
             return output;
